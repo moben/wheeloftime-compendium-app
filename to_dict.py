@@ -140,26 +140,31 @@ class WoTDict:
         glos = Glossary()
 
         for en, ets in self._entries.items():
-            defs = "\n".join(
+            defs = "\n<hr>\n".join(
                 dedent(
                     f"""\
                     <div class="dict-origin">{e.book}, {e.chapter}</div>
                     <div class="dict-definition">{e.definition}</div>
-                    <hr>
                     """,
                 )
                 for e in ets
             )
-            backlinks = "\n".join(
-                dedent(
-                    f"""\
-                    <dl class="dict-backlinks">
-                    <dt>Backlinks{f''' ({e.book})''' if len(ets) > 1 else ''}:</dt>
-                    {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(e.backlinks))}
-                    </dl>
-                    """,
+
+            backlinks = (
+                "\n".join(
+                    dedent(
+                        f"""\
+                        <hr>
+                        <dl class="dict-backlinks">
+                        <dt>Backlinks{f''' ({e.book})''' if len(ets) > 1 else ''}:</dt>
+                        {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(e.backlinks))}
+                        </dl>
+                        """,
+                    )
+                    for e in ets
                 )
-                for e in ets
+                if any(e.backlinks for e in ets)
+                else ""
             )
             glos.addEntry(
                 glos.newEntry(
