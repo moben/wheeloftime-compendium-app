@@ -240,6 +240,17 @@ class WoTDict:
         Path(f"{output_basename}.syn.dz").unlink()
 
         with Path(f"{output_basename}.css").open("w") as f:
+            f.write(
+                dedent(
+                    """\
+                    /*
+                    This file contains the default syle of the dictionary entries
+                    To override a style, simply change it here and and `!important`
+                    */
+                    """,
+                )
+            )
+            f.write("\n\n")
             f.write(style)
 
 
