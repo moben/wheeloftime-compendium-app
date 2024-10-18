@@ -63,6 +63,8 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
             # https://github.com/ilius/pyglossary/issues/456
             defi = r.sub(rf"""<a href="bword://{name}">\1</a>""", defi)
+        # markdown emphasis
+        defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
         return defi
 
     def backlinks(name: str):
