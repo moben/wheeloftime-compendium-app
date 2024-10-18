@@ -57,6 +57,9 @@ class WoTDict:
         }
 
     def _convert_defi_links(self, defi: str) -> str:
+        # markdown emphasis
+        defi = re.sub(r"([^_]*)_([^_]+)_", r"""\1<em class="dict-emphasis">\2</em>""", defi)
+
         for r, name in self._link_patterns.items():
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
             # https://github.com/ilius/pyglossary/issues/456
@@ -64,8 +67,8 @@ class WoTDict:
                 rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""",
                 defi,
             )
-        # markdown emphasis
-        return re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
+
+        return defi
 
     def ingest(self, input_file: str, booknumber: int, booktitle: str) -> None:
         with Path(input_file).open() as jf:
