@@ -78,12 +78,14 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
             if backlink_pattern.search(jd["info"])
         ]
         if links:
-            return dedent(f"""\
+            return dedent(
+                f"""\
                 <dl class="dict-backlinks">
                     <dt>Backlinks:</dt>
                     {"\n".join(f"<dd>{l}</dd>" for l in links)}
                 </dl>
-                """)
+                """,
+            )
         else:
             return ""
 
@@ -93,7 +95,8 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
         glos.addEntry(
             glos.newEntry(
                 [d["name"], *get_alt_words(d["name"])],
-                dedent(f"""\
+                dedent(
+                    f"""\
                     <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
                     <div>
                     <div class="dict-origin">{booktitle}, {d["chapter"]}</div>
@@ -101,7 +104,8 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
                     <hr>
                     <div class="dict-backlinks">{backlinks(d["name"])}</div>
                     </div>
-                    """),
+                    """,
+                ),
                 defiFormat="h",  # "m" for plain text, "h" for HTML
             )
         )
@@ -116,7 +120,8 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
     )
     with open(f"{output_basename}.css", "w") as f:
         f.write(
-            dedent("""\
+            dedent(
+                """\
                 .dict-origin {
                     font-size: smaller;
                     font-style: italic;
@@ -136,7 +141,8 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
                 .dict-internal-link {}
 
                 .dict-emphasis {}
-                """)
+                """,
+            )
         )
 
 
