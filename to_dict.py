@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-from dataclasses import dataclass
-from textwrap import dedent
 import json
 import re
+from dataclasses import dataclass
+from pathlib import Path
+from textwrap import dedent
+
 from pyglossary.glossary_v2 import Glossary
 
 # Glossary.init() should be called only once, so make sure you put it
@@ -47,7 +49,7 @@ class wot_dict:
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
             # https://github.com/ilius/pyglossary/issues/456
             defi = r.sub(
-                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi
+                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi,
             )
         # markdown emphasis
         defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
@@ -165,7 +167,7 @@ class wot_dict:
                         """,
                     ),
                     defiFormat="h",  # "m" for plain text, "h" for HTML
-                )
+                ),
             )
 
         glos.setInfo("title", dicttitle)
@@ -204,7 +206,7 @@ class wot_dict:
 
                     .dict-emphasis {}
                     """,
-                )
+                ),
             )
 
 
