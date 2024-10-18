@@ -236,15 +236,16 @@ class WoTDict:
             )
 
 
-def build_dict(dict_obj: WoTDict, prefix: str, title_fmt: str, num: str, name: str):
+def build_dict(var, num: str, name: str):
+    dict_obj = var.get("dict", WoTDict())
     dict_obj.ingest(
         f"assets/data/book-{num}.json",
         int(num),
         name,
     )
     dict_obj.write_dict(
-        f"dicts/{prefix}-{num}",
-        title_fmt.format(num=num, name=name),
+        f"dicts/{var['prefix']}-{num}",
+        var["title_fmt"].format(num=num, name=name),
     )
 
 
@@ -297,21 +298,14 @@ def main() -> None:
     def cond_build_new_spring(current_num: None | str):
         for var in variants.values():
             if var["after"] == current_num:
-                build_dict(
-                    var.get("dict", WoTDict()),
-                    var["prefix"],
-                    var["title_fmt"],
-                    *new_spring,
-                )
+                build_dict(var, *new_spring)
 
     print(f"Converting {' '.join(new_spring)}")
     cond_build_new_spring(None)
     for num, name in books.items():
         print(f"Converting {num} {name}")
         for var in variants.values():
-            build_dict(
-                var.get("dict", WoTDict()), var["prefix"], var["title_fmt"], num, name
-            )
+            build_dict(var, num, name)
         cond_build_new_spring(num)
 
 
