@@ -266,7 +266,11 @@ def main() -> None:
         "14": "A Memory of Light",
     }
     new_spring = ("00", "New Spring")
-    cumulative_variants = {
+    variants = {
+        "independent": {
+            "after": None,
+            "prefix": "wot-book",
+        },
         "ns_chronological": {
             "after": None,
             "dict": WoTDict(),
@@ -289,14 +293,12 @@ def main() -> None:
     def cond_build_new_spring(current_num: None | str):
         for var in cumulative_variants.values():
             if var["after"] == current_num:
-                build_dict(var["dict"], var["prefix"], *new_spring)
+                build_dict(var.get("dict", WoTDict()), var["prefix"], *new_spring)
 
     print(f"Converting {' '.join(new_spring)}")
-    build_dict(WoTDict(), "wot-book", *new_spring)
     cond_build_new_spring(None)
     for num, name in books.items():
         print(f"Converting {num} {name}")
-        build_dict(WoTDict(), "wot-book", num, name)
         cond_build_new_spring(num)
         for var in cumulative_variants.values():
             build_dict(var["dict"], var["prefix"], num, name)
