@@ -4,11 +4,11 @@ from __future__ import annotations
 import gzip
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 from pathlib import Path
 from textwrap import dedent
-from typing import Final, Iterator, NotRequired, TypedDict
+from typing import Final, Iterator, TypedDict
 
 from pyglossary.glossary_v2 import Glossary
 
@@ -261,6 +261,28 @@ class WoTDict:
             f.write(style)
 
 
+@dataclass(frozen=True, kw_only=True, slots=True)
+class DictVariant:
+    after: None | str
+    wot_dict: None | WoTDict = field(default_factory=WoTDict)
+    prefix: str
+    title_fmt: str
+
+    def build_dict(self, num: str, name: str) -> None:
+        Path(f"dicts/{self.prefix}").mkdir(parents=True, exist_ok=True)
+
+        dict_obj = WoTDict() if self.wot_dict is None else self.wot_dict
+        dict_obj.ingest(
+            f"assets/data/book-{num}.json",
+            int(num),
+            name,
+        )
+        dict_obj.write_dict(
+            f"dicts/{self.prefix}/{self.prefix}-book-{num}",
+            self.title_fmt.format(num=num, name=name),
+        )
+
+
 def main() -> None:
     books: Final = {
         "01": "The Eye of the World",
@@ -280,64 +302,44 @@ def main() -> None:
     }
     new_spring: Final = ("00", "New Spring")
 
-    class DictVariant(TypedDict):
-        after: None | str
-        wot_dict: NotRequired[WoTDict]
-        prefix: str
-        title_fmt: str
-
-    variants: Final[dict[str, DictVariant]] = {
-        "independent": {
-            "after": None,
-            "prefix": "wot",
-            "title_fmt": "WoT Compendium {num}: {name}",
-        },
-        "ns_chronological": {
-            "after": None,
-            "wot_dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_chronological",
-            "title_fmt": "WoT Compendium (cumulative, NS chronological) {num}: {name}",
-        },
-        "ns_publishing": {
-            "after": "10",
-            "wot_dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_publishing",
-            "title_fmt": "WoT Compendium (cumulative, NS publishing) {num}: {name}",
-        },
-        "ns_last": {
-            "after": "14",
-            "wot_dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_last",
-            "title_fmt": "WoT Compendium (cumulative, NS last) {num}: {name}",
-        },
+    variants: Final[set[DictVariant]] = {
+        # independent, non-cumulative dictionaries
+        DictVariant(
+            after=None,
+            wot_dict=None,
+            prefix="wot",
+            title_fmt="WoT Compendium {num}: {name}",
+        ),
+        # New Spring in (in-universe) chronilogical order
+        DictVariant(
+            after=None,
+            prefix="wot-cumulative-ns_chronological",
+            title_fmt="WoT Compendium (cumulative, NS chronological) {num}: {name}",
+        ),
+        # New Spring in publishing order
+        DictVariant(
+            after="10",
+            prefix="wot-cumulative-ns_publishing",
+            title_fmt="WoT Compendium (cumulative, NS publishing) {num}: {name}",
+        ),
+        # New Spring last
+        DictVariant(
+            after="14",
+            prefix="wot-cumulative-ns_last",
+            title_fmt="WoT Compendium (cumulative, NS last) {num}: {name}",
+        ),
     }
 
-    def build_dict(var: DictVariant, num: str, name: str) -> None:
-        Path(f"dicts/{var['prefix']}").mkdir(parents=True, exist_ok=True)
-
-        dict_obj = var.get("wot_dict", WoTDict())
-        dict_obj.ingest(
-            f"assets/data/book-{num}.json",
-            int(num),
-            name,
-        )
-        dict_obj.write_dict(
-            f"dicts/{var['prefix']}/{var['prefix']}-book-{num}",
-            var["title_fmt"].format(num=num, name=name),
-        )
-
-    def cond_build_new_spring(current_num: None | str) -> None:
-        for var in variants.values():
-            if var["after"] == current_num:
-                build_dict(var, *new_spring)
-
     print(f"Converting {' '.join(new_spring)}")
-    cond_build_new_spring(None)
+    for var in variants:
+        if var.after == None:
+            var.build_dict(*new_spring)
     for num, name in books.items():
         print(f"Converting {num} {name}")
-        for var in variants.values():
-            build_dict(var, num, name)
-        cond_build_new_spring(num)
+        for var in variants:
+            var.build_dict(num, name)
+            if var.after == num:
+                var.build_dict(*new_spring)
 
 
 if __name__ == "__main__":
