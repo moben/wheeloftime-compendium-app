@@ -128,6 +128,8 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
                     padding-bottom: 1em;
                 }
 
+                .dict-definition {}
+
                 .dict-backlinks > dt {
                     font-size: smaller;
                     font-weight: bold;
