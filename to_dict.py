@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
+from typing import Iterator, TypedDict
 
 from pyglossary.glossary_v2 import Glossary
 
@@ -12,6 +14,11 @@ from pyglossary.glossary_v2 import Glossary
 # in the right place
 Glossary.init()
 
+class BookData(TypedDict):
+    id: str
+    name: str
+    chapter: str
+    info: str
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class dict_entry:
@@ -23,20 +30,20 @@ class dict_entry:
 
 class wot_dict:
     _entries: dict[str, list[dict_entry]]
-    _link_patterns: dict[re.Pattern, str]
+    _link_patterns: dict[re.Pattern[str], str]
 
     def __init__(self) -> None:
         self._entries = {}
         self._link_patterns = {}
 
     @staticmethod
-    def _compile_link_patterns(jdata):
+    def _compile_link_patterns(jdata: list[BookData]) -> dict[re.Pattern[str], str]:
         # This seems backwards, but there's at least one name that's in two book json
         # files but with a different id.
         # In any case, what we really need is to find the name for a given id link.
         return {re.compile(rf"\[([^]]*)\]\(#{jd['id']}\)"): jd["name"] for jd in jdata}
 
-    def _find_backlinks(self, name: str, jdata) -> set[str]:
+    def _find_backlinks(self, name: str, jdata: list[BookData]) -> set[str]:
         backlink_patterns = [r for r, n in self._link_patterns.items() if n == name]
         return {
             jd["name"]
@@ -52,12 +59,11 @@ class wot_dict:
                 rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi,
             )
         # markdown emphasis
-        defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
-        return defi
+        return re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
 
     def ingest(self, input_file: str, booktitle: str) -> None:
-        with open(input_file) as jf:
-            jdata = json.load(jf)
+        with Path(input_file).open() as jf:
+            jdata: list[BookData] = json.load(jf)
 
         self._link_patterns |= self._compile_link_patterns(jdata)
 
@@ -87,8 +93,8 @@ class wot_dict:
                 self._entries[d["name"]] = [new_entry]
 
     @staticmethod
-    def _get_alt_words(word):
-        def _get_words():
+    def _get_alt_words(word: str) -> Iterator[str]:
+        def _get_words() -> Iterator[str]:
             # word itself needs to be in synonyms, at least for sdcv
             yield word
 
@@ -127,7 +133,7 @@ class wot_dict:
             # exactly match the full name
             yield w.lower()
 
-    def write_dict(self, output_basename: str, dicttitle: str):
+    def write_dict(self, output_basename: str, dicttitle: str) -> None:
         glos = Glossary()
 
         for en, ets in self._entries.items():
@@ -178,7 +184,7 @@ class wot_dict:
             # koreader is fine with compressed .dict, but won't read compressed .syn
             dictzip=False,
         )
-        with open(f"{output_basename}.css", "w") as f:
+        with Path(f"{output_basename}.css").open("w") as f:
             f.write(
                 dedent(
                     """\
@@ -210,7 +216,7 @@ class wot_dict:
             )
 
 
-def main():
+def main() -> None:
     books = {
         "01": "The Eye of the World",
         "02": "The Great Hunt",
