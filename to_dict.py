@@ -260,20 +260,55 @@ def main() -> None:
         "08": "The Path of Daggers",
         "09": "Winter's Heart",
         "10": "Crossroads of Twilight",
-        "00": "New Spring",
         "11": "Knife of Dreams",
         "12": "The Gathering Storm",
         "13": "Towers of Midnight",
         "14": "A Memory of Light",
     }
-    wot_cumulative_dicts = WoTDict()
+    new_spring = ("00", "New Spring")
+    cumulative_variants = {
+        "ns_chronological": {
+            "after": "00",
+            "dict": WoTDict(),
+            "prefix": "wot-cumulative-ns_chronological-book",
+        },
+        "ns_publishing": {
+            "after": "10",
+            "dict": WoTDict(),
+            "prefix": "wot-cumulative-ns_publishing-book",
+        },
+        "ns_last": {
+            "after": "14",
+            "dict": WoTDict(),
+            "prefix": "wot-cumulative-ns_last-book",
+        },
+    }
 
     Path("dicts").mkdir(exist_ok=True)
 
+    print(f"Converting {' '.join(new_spring)}")
+    build_dict(WoTDict(), "wot-book", *new_spring)
+    build_dict(
+        cumulative_variants["ns_chronological"]["dict"],
+        cumulative_variants["ns_chronological"]["prefix"],
+        *new_spring,
+    )
     for num, name in books.items():
         print(f"Converting {num} {name}")
-        build_dict(wot_cumulative_dicts, "wot-cumulative-book", num, name)
         build_dict(WoTDict(), "wot-book", num, name)
+        for order in cumulative_variants:
+            build_dict(
+                cumulative_variants[order]["dict"],
+                cumulative_variants[order]["prefix"],
+                num,
+                name,
+            )
+            if cumulative_variants[order]["after"] == num:
+                build_dict(
+                    cumulative_variants[order]["dict"],
+                    cumulative_variants[order]["prefix"],
+                    *new_spring,
+                )
 
 
 if __name__ == "__main__":
