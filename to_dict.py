@@ -277,19 +277,19 @@ def main() -> None:
             "after": None,
             "dict": WoTDict(),
             "prefix": "wot-cumulative-ns_chronological-book",
-            "title_fmt": "WoT Compendium {num} (cumulative, chronological): {name}",
+            "title_fmt": "WoT Compendium (cumulative, NS chronological) {num}: {name}",
         },
         "ns_publishing": {
             "after": "10",
             "dict": WoTDict(),
             "prefix": "wot-cumulative-ns_publishing-book",
-            "title_fmt": "WoT Compendium {num} (cumulative, publishing): {name}",
+            "title_fmt": "WoT Compendium (cumulative, NS publishing) {num}: {name}",
         },
         "ns_last": {
             "after": "14",
             "dict": WoTDict(),
             "prefix": "wot-cumulative-ns_last-book",
-            "title_fmt": "WoT Compendium {num} (cumulative, NS last): {name}",
+            "title_fmt": "WoT Compendium (cumulative, NS last) {num}: {name}",
         },
     }
 
