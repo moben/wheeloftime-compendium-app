@@ -152,6 +152,33 @@ class WoTDict:
     def write_dict(self, output_basename: str, dicttitle: str) -> None:
         glos = Glossary()
 
+        style = dedent(
+            """\
+            .dict-origin {
+                font-size: smaller;
+                font-style: italic;
+                padding-bottom: 1em;
+            }
+
+            .dict-definition {}
+
+            .dict-backlinks {
+                font-size: smaller;
+            }
+
+            .dict-backlinks > dt {
+                font-weight: bold;
+            }
+
+            .dict-backlinks > dd {
+                font-style: italic;
+            }
+
+            .dict-internal-link {}
+
+            .dict-emphasis {}
+            """,
+        )
         for en, ets in self._entries.items():
             defs = "\n<hr>\n".join(
                 dedent(
@@ -184,6 +211,9 @@ class WoTDict:
                     [en, *self._get_alt_words(en)],
                     dedent(
                         f"""\
+                        <style>
+                        {style}
+                        </style>
                         <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
                         <div>
                         {defs}
@@ -210,38 +240,10 @@ class WoTDict:
         Path(f"{output_basename}.syn.dz").unlink()
 
         with Path(f"{output_basename}.css").open("w") as f:
-            f.write(
-                dedent(
-                    """\
-                    .dict-origin {
-                        font-size: smaller;
-                        font-style: italic;
-                        padding-bottom: 1em;
-                    }
-
-                    .dict-definition {}
-
-                    .dict-backlinks {
-                        font-size: smaller;
-                    }
-
-                    .dict-backlinks > dt {
-                        font-weight: bold;
-                    }
-
-                    .dict-backlinks > dd {
-                        font-style: italic;
-                    }
-
-                    .dict-internal-link {}
-
-                    .dict-emphasis {}
-                    """,
-                ),
-            )
+            f.write(style)
 
 
-def build_dict(var, num: str, name: str):
+def build_dict(var, num: str, name: str) -> None:
     Path(f"dicts/{var['prefix']}").mkdir(parents=True, exist_ok=True)
 
     dict_obj = var.get("dict", WoTDict())
