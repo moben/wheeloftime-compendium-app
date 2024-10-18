@@ -302,7 +302,7 @@ def main() -> None:
     }
     new_spring: Final = ("00", "New Spring")
 
-    variants: Final[set[DictVariant]] = {
+    variants: Final[list[DictVariant]] = [
         # independent, non-cumulative dictionaries
         DictVariant(
             after=None,
@@ -328,7 +328,7 @@ def main() -> None:
             prefix="wot-cumulative-ns_last",
             title="WoT Compendium (cumulative, NS last)",
         ),
-    }
+    ]
 
     print(f"Converting {' '.join(new_spring)}")
     for var in variants:
