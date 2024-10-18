@@ -21,15 +21,15 @@ class BookData(TypedDict):
     info: str
 
 @dataclass(frozen=True, kw_only=True, slots=True)
-class dict_entry:
+class DictEntry:
     book: str
     chapter: str
     definition: str
     backlinks: set[str]
 
 
-class wot_dict:
-    _entries: dict[str, list[dict_entry]]
+class WoTDict:
+    _entries: dict[str, list[DictEntry]]
     _link_patterns: dict[re.Pattern[str], str]
 
     def __init__(self) -> None:
@@ -68,7 +68,7 @@ class wot_dict:
         self._link_patterns |= self._compile_link_patterns(jdata)
 
         for d in jdata:
-            new_entry = dict_entry(
+            new_entry = DictEntry(
                 book=booktitle,
                 chapter=d["chapter"],
                 definition=self._convert_defi_links(d["info"]),
@@ -80,7 +80,7 @@ class wot_dict:
                     new_entry,
                     *(
                         # Only keep links from the most recent book to avoid clutter
-                        dict_entry(
+                        DictEntry(
                             book=e.book,
                             chapter=e.chapter,
                             definition=e.definition,
@@ -234,7 +234,7 @@ def main() -> None:
         "13": "Towers of Midnight",
         "14": "A Memory of Light",
     }
-    wot_cumulative_dicts = wot_dict()
+    wot_cumulative_dicts = WoTDict()
 
     Path("dicts").mkdir(exist_ok=True)
 
@@ -248,7 +248,7 @@ def main() -> None:
             f"dicts/wot-cumulative-book-{num}",
             f"WoT Compendium {num} (cumulative): {name}",
         )
-        wot_single_dict = wot_dict()
+        wot_single_dict = WoTDict()
         wot_single_dict.ingest(
             f"assets/data/book-{num}.json",
             name,
