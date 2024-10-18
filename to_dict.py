@@ -58,7 +58,11 @@ class WoTDict:
 
     def _convert_defi_links(self, defi: str) -> str:
         # markdown emphasis
-        defi = re.sub(r"([^_]*)_([^_]+)_", r"""\1<em class="dict-emphasis">\2</em>""", defi)
+        defi = re.sub(
+            r"([^_]*)_([^_]+)_",
+            r"""\1<em class="dict-emphasis">\2</em>""",
+            defi,
+        )
 
         for r, name in self._link_patterns.items():
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
@@ -251,7 +255,7 @@ class WoTDict:
                     To override a style, simply change it here and and `!important`
                     */
                     """,
-                )
+                ),
             )
             f.write("\n\n")
             f.write(style)
