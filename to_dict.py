@@ -9,7 +9,7 @@ from pyglossary.glossary_v2 import Glossary
 Glossary.init()
 
 
-def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: str):
+def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle: str):
     with open(input_file) as jf:
         jdata = json.load(jf)
 
@@ -62,7 +62,7 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
         for name, r in link_patterns.items():
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
             # https://github.com/ilius/pyglossary/issues/456
-            defi = r.sub(rf"""<a href="bword://{name}">\1</a>""", defi)
+            defi = r.sub(rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi)
         # markdown emphasis
         defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
         return defi
@@ -70,16 +70,16 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
     def backlinks(name: str):
         backlink_pattern = link_patterns[name]
         links = [
-            f"""<li><i><a href="bword://{jd["name"]}">{jd["name"]}</a></i></li>"""
+            f"""<a href="bword://{jd["name"]}">{jd["name"]}</a>"""
             for jd in jdata
             if backlink_pattern.search(jd["info"])
         ]
         if links:
             return f"""
-                <b>Backlinks:</b>
-                <ul>
-                {"\n".join(links)}
-                </ul>
+                <dl class="dict-backlinks">
+                    <dt>Backlinks:</dt>
+                    {"\n".join(f"<dd>{l}</dd>" for l in links)}
+                </dl>
             """
         else:
             return ""
@@ -91,13 +91,16 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
             glos.newEntry(
                 [d["name"], *get_alt_words(d["name"])],
                 f"""
+                    <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
                     <div>
 
-                    <div style="padding-bottom: 1em"><em style="font-size: smaller">{booktitle}, {d["chapter"]}</em></div>
+                    <div class="dict-origin">{booktitle}, {d["chapter"]}</div>
 
-                    <div>{defi_convert_links(d["info"])}</div>
+                    <div class="dict-definition">{defi_convert_links(d["info"])}</div>
 
-                    <div style="padding-top: 1em; font-size: smaller">{backlinks(d["name"])}</div>
+                    <hr>
+
+                    <div class="dict-backlinks">{backlinks(d["name"])}</div>
 
                     </div>
                 """,
@@ -108,11 +111,31 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
     glos.setInfo("title", f"Wheel of Time Compendium {booknumber}: {booktitle}")
     glos.setInfo("author", "Karl Hammond, Jason Wright")
     glos.write(
-        output_file,
+        f"{output_basename}.ifo",
         format="Stardict",
         # koreader is fine with compressed .dict, but won't read compressed .syn
         dictzip=False,
     )
+    with open(f"{output_basename}.css", 'w') as f:
+        f.write('''
+.dict-origin {
+    font-size: smaller;
+    font-style: italic;
+    padding-bottom: 1em;
+}
+
+.dict-backlinks {
+    font-size: smaller;
+}
+
+.dict-backlinks > dt {
+    font-weight: bold;
+}
+
+.dict-backlinks > dd {
+    font-style: italic;
+}
+''')
 
 
 books = {
@@ -136,7 +159,7 @@ for num, name in books.items():
     print(f"Converting {num} {name}")
     write_dict(
         f"assets/data/book-{num}.json",
-        f"wot-book-{num}.ifo",
+        f"wot-book-{num}",
         num,
         name,
     )
