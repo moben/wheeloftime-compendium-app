@@ -65,6 +65,23 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
             defi = r.sub(rf"""<a href="bword://{name}">\1</a>""", defi)
         return defi
 
+    def backlinks(name: str):
+        backlink_pattern = link_patterns[name]
+        links = [
+            f"""<li><i><a href="bword://{jd["name"]}">{jd["name"]}</a></i></li>"""
+            for jd in jdata
+            if backlink_pattern.search(jd["info"])
+        ]
+        if links:
+            return f"""
+                <b>Backlinks:</b>
+                <ul>
+                {"\n".join(links)}
+                </ul>
+            """
+        else:
+            return ""
+
     glos = Glossary()
 
     for d in jdata:
@@ -77,6 +94,9 @@ def write_dict(input_file: str, output_file: str, booknumber: str, booktitle: st
                     <div style="padding-bottom: 1em"><em style="font-size: smaller">{booktitle}, {d["chapter"]}</em></div>
 
                     <div>{defi_convert_links(d["info"])}</div>
+
+                    <div style="padding-top: 1em; font-size: smaller">{backlinks(d["name"])}</div>
+
                     </div>
                 """,
                 defiFormat="h",  # "m" for plain text, "h" for HTML
