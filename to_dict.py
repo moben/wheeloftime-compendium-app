@@ -14,11 +14,13 @@ from pyglossary.glossary_v2 import Glossary
 # in the right place
 Glossary.init()
 
+
 class BookData(TypedDict):
     id: str
     name: str
     chapter: str
     info: str
+
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class DictEntry:
@@ -56,7 +58,8 @@ class WoTDict:
             # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
             # https://github.com/ilius/pyglossary/issues/456
             defi = r.sub(
-                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi,
+                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""",
+                defi,
             )
         # markdown emphasis
         return re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
