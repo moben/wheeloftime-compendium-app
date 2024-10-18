@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
 from textwrap import dedent
-from typing import Iterator, TypedDict
+from typing import Final, Iterator, NotRequired, TypedDict
 
 from pyglossary.glossary_v2 import Glossary
 
@@ -261,23 +261,8 @@ class WoTDict:
             f.write(style)
 
 
-def build_dict(var, num: str, name: str) -> None:
-    Path(f"dicts/{var['prefix']}").mkdir(parents=True, exist_ok=True)
-
-    dict_obj = var.get("dict", WoTDict())
-    dict_obj.ingest(
-        f"assets/data/book-{num}.json",
-        int(num),
-        name,
-    )
-    dict_obj.write_dict(
-        f"dicts/{var['prefix']}/{var['prefix']}-book-{num}",
-        var["title_fmt"].format(num=num, name=name),
-    )
-
-
 def main() -> None:
-    books = {
+    books: Final = {
         "01": "The Eye of the World",
         "02": "The Great Hunt",
         "03": "The Dragon Reborn",
@@ -293,8 +278,15 @@ def main() -> None:
         "13": "Towers of Midnight",
         "14": "A Memory of Light",
     }
-    new_spring = ("00", "New Spring")
-    variants = {
+    new_spring: Final = ("00", "New Spring")
+
+    class DictVariant(TypedDict):
+        after: None | str
+        wot_dict: NotRequired[WoTDict]
+        prefix: str
+        title_fmt: str
+
+    variants: Final[dict[str, DictVariant]] = {
         "independent": {
             "after": None,
             "prefix": "wot",
@@ -302,25 +294,39 @@ def main() -> None:
         },
         "ns_chronological": {
             "after": None,
-            "dict": WoTDict(),
+            "wot_dict": WoTDict(),
             "prefix": "wot-cumulative-ns_chronological",
             "title_fmt": "WoT Compendium (cumulative, NS chronological) {num}: {name}",
         },
         "ns_publishing": {
             "after": "10",
-            "dict": WoTDict(),
+            "wot_dict": WoTDict(),
             "prefix": "wot-cumulative-ns_publishing",
             "title_fmt": "WoT Compendium (cumulative, NS publishing) {num}: {name}",
         },
         "ns_last": {
             "after": "14",
-            "dict": WoTDict(),
+            "wot_dict": WoTDict(),
             "prefix": "wot-cumulative-ns_last",
             "title_fmt": "WoT Compendium (cumulative, NS last) {num}: {name}",
         },
     }
 
-    def cond_build_new_spring(current_num: None | str):
+    def build_dict(var: DictVariant, num: str, name: str) -> None:
+        Path(f"dicts/{var['prefix']}").mkdir(parents=True, exist_ok=True)
+
+        dict_obj = var.get("wot_dict", WoTDict())
+        dict_obj.ingest(
+            f"assets/data/book-{num}.json",
+            int(num),
+            name,
+        )
+        dict_obj.write_dict(
+            f"dicts/{var['prefix']}/{var['prefix']}-book-{num}",
+            var["title_fmt"].format(num=num, name=name),
+        )
+
+    def cond_build_new_spring(current_num: None | str) -> None:
         for var in variants.values():
             if var["after"] == current_num:
                 build_dict(var, *new_spring)
