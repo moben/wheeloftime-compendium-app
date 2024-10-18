@@ -24,6 +24,7 @@ class BookData(TypedDict):
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class DictEntry:
+    book_number: int
     book_title: str
     chapter: str
     definition: str
@@ -64,7 +65,7 @@ class WoTDict:
         # markdown emphasis
         return re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
 
-    def ingest(self, input_file: str, booktitle: str) -> None:
+    def ingest(self, input_file: str, booknumber: int, booktitle: str) -> None:
         with Path(input_file).open() as jf:
             jdata: list[BookData] = json.load(jf)
 
@@ -72,6 +73,7 @@ class WoTDict:
 
         for d in jdata:
             new_entry = DictEntry(
+                book_number=booknumber,
                 book_title=booktitle,
                 chapter=d["chapter"],
                 definition=self._convert_defi_links(d["info"]),
@@ -84,6 +86,7 @@ class WoTDict:
                     *(
                         # Only keep links from the most recent book to avoid clutter
                         DictEntry(
+                            book_number=e.book_number,
                             book_title=e.book_title,
                             chapter=e.chapter,
                             definition=e.definition,
@@ -250,6 +253,7 @@ def main() -> None:
         print(f"Converting {num} {name}")
         wot_cumulative_dicts.ingest(
             f"assets/data/book-{num}.json",
+            int(num.lstrip("0")),
             name,
         )
         wot_cumulative_dicts.write_dict(
@@ -259,6 +263,7 @@ def main() -> None:
         wot_single_dict = WoTDict()
         wot_single_dict.ingest(
             f"assets/data/book-{num}.json",
+            int(num.lstrip("0")),
             name,
         )
         wot_single_dict.write_dict(
