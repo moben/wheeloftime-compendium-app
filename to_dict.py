@@ -245,7 +245,7 @@ def main():
         )
         wot_cumulative_dicts.write_dict(
             f"wot-cumulative-book-{num}",
-            f"Wheel of Time Compendium {num}: {name}",
+            f"WoT Compendium {num} (cumulative): {name}",
         )
         wot_single_dict = wot_dict()
         wot_single_dict.ingest(
@@ -254,7 +254,7 @@ def main():
         )
         wot_single_dict.write_dict(
             f"wot-book-{num}",
-            f"Wheel of Time Compendium {num}: {name}",
+            f"WoT Compendium {num}: {name}",
         )
 
 
