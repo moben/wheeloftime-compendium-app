@@ -14,7 +14,7 @@ Glossary.init()
 @dataclass
 class dict_entry:
     definitions: list[tuple[str, str]]
-    backlinks: list[str]
+    backlinks: list[tuple[str, set[str]]]
 
 
 class wot_dict:
@@ -34,11 +34,11 @@ class wot_dict:
 
     def _find_backlinks(self, name: str, jdata) -> list[str]:
         backlink_patterns = [r for r, n in self._link_patterns.items() if n == name]
-        return [
+        return {
             jd["name"]
             for jd in jdata
             if any(p.search(jd["info"]) for p in backlink_patterns)
-        ]
+        }
 
     def _convert_defi_links(self, defi: str) -> str:
         for r, name in self._link_patterns.items():
@@ -58,6 +58,7 @@ class wot_dict:
         self._link_patterns |= self._compile_link_patterns(jdata)
 
         for d in jdata:
+            backlinks = self._find_backlinks(d["name"], jdata)
             if d["name"] in self._entries:
                 e = self._entries[d["name"]]
                 self._entries[d["name"]] = dict_entry(
@@ -68,12 +69,13 @@ class wot_dict:
                         ),
                         *e.definitions,
                     ],
-                    backlinks=sorted(
-                        {
-                            *e.backlinks,
-                            *self._find_backlinks(d["name"], jdata),
-                        }
-                    ),
+                    backlinks=[
+                        (
+                            booktitle,
+                            backlinks,
+                        ),
+                        *((book, links - backlinks) for (book, links) in e.backlinks),
+                    ],
                 )
             else:
                 self._entries[d["name"]] = dict_entry(
@@ -83,7 +85,12 @@ class wot_dict:
                             self._convert_defi_links(d["info"]),
                         ),
                     ],
-                    backlinks=self._find_backlinks(d["name"], jdata),
+                    backlinks=[
+                        (
+                            booktitle,
+                            backlinks,
+                        ),
+                    ],
                 )
 
     @staticmethod
@@ -141,6 +148,17 @@ class wot_dict:
                 )
                 for (chap, defi) in e.definitions
             )
+            backlinks = "\n".join(
+                dedent(
+                    f"""\
+                    <dl class="dict-backlinks">
+                    <dt>Backlinks{f''' ({book})''' if len(e.backlinks) > 1 else ''}:</dt>
+                    {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(links))}
+                    </dl>
+                    """,
+                )
+                for book, links in e.backlinks
+            )
             glos.addEntry(
                 glos.newEntry(
                     [en, *self._get_alt_words(en)],
@@ -149,11 +167,8 @@ class wot_dict:
                         <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
                         <div>
                         {defs}
-                        <div class="dict-backlinks">
-                        <dl class="dict-backlinks">
-                        <dt>Backlinks:</dt>
-                        {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in e.backlinks)}
-                        </dl>
+                        <div>
+                        {backlinks}
                         </div>
                         </div>
                         """,
@@ -182,13 +197,15 @@ class wot_dict:
 
                     .dict-definition {}
 
-                    .dict-backlinks > dt {
+                    .dict-backlinks {
                         font-size: smaller;
+                    }
+
+                    .dict-backlinks > dt {
                         font-weight: bold;
                     }
 
                     .dict-backlinks > dd {
-                        font-size: smaller;
                         font-style: italic;
                     }
 
