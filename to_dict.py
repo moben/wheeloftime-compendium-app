@@ -230,6 +230,8 @@ def main():
     }
     wot_cumulative_dicts = wot_dict()
 
+    Path("dicts").mkdir(exist_ok=True)
+
     for num, name in books.items():
         print(f"Converting {num} {name}")
         wot_cumulative_dicts.ingest(
@@ -237,7 +239,7 @@ def main():
             name,
         )
         wot_cumulative_dicts.write_dict(
-            f"wot-cumulative-book-{num}",
+            f"dicts/wot-cumulative-book-{num}",
             f"WoT Compendium {num} (cumulative): {name}",
         )
         wot_single_dict = wot_dict()
@@ -246,7 +248,7 @@ def main():
             name,
         )
         wot_single_dict.write_dict(
-            f"wot-book-{num}",
+            f"dicts/wot-book-{num}",
             f"WoT Compendium {num}: {name}",
         )
 
