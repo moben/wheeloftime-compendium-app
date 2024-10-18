@@ -216,6 +216,9 @@ class WoTDict:
             glos.addEntry(
                 glos.newEntry(
                     [en, *self._get_alt_words(en)],
+                    # Also embed the style here because external style is not supported
+                    # in many viewers.  Still ship external style below because it
+                    # documents defaults for overwriting by users.
                     dedent(
                         f"""\
                         <style>
