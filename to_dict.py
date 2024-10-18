@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from dataclasses import dataclass
 from textwrap import dedent
 import json
 import re
@@ -10,11 +11,83 @@ from pyglossary.glossary_v2 import Glossary
 Glossary.init()
 
 
-def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle: str):
-    with open(input_file) as jf:
-        jdata = json.load(jf)
+@dataclass
+class dict_entry:
+    definitions: list[tuple[str, str]]
+    backlinks: list[str]
 
-    def get_alt_words(word):
+
+class wot_dict:
+    _entries: dict[str, dict_entry]
+    _link_patterns: dict[re.Pattern, str]
+
+    def __init__(self) -> None:
+        self._entries = {}
+        self._link_patterns = {}
+
+    @staticmethod
+    def _compile_link_patterns(jdata):
+        # This seems backwards, but there's at least one name that's in two book json
+        # files but with a different id.
+        # In any case, what we really need is to find the name for a given id link.
+        return {re.compile(rf"\[([^]]*)\]\(#{jd['id']}\)"): jd["name"] for jd in jdata}
+
+    def _find_backlinks(self, name: str, jdata) -> list[str]:
+        backlink_patterns = [r for r, n in self._link_patterns.items() if n == name]
+        return [
+            jd["name"]
+            for jd in jdata
+            if any(p.search(jd["info"]) for p in backlink_patterns)
+        ]
+
+    def _convert_defi_links(self, defi: str) -> str:
+        for r, name in self._link_patterns.items():
+            # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
+            # https://github.com/ilius/pyglossary/issues/456
+            defi = r.sub(
+                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi
+            )
+        # markdown emphasis
+        defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
+        return defi
+
+    def ingest(self, input_file: str, booktitle: str) -> None:
+        with open(input_file) as jf:
+            jdata = json.load(jf)
+
+        self._link_patterns |= self._compile_link_patterns(jdata)
+
+        for d in jdata:
+            if d["name"] in self._entries:
+                e = self._entries[d["name"]]
+                self._entries[d["name"]] = dict_entry(
+                    definitions=[
+                        (
+                            f"{booktitle}, {d["chapter"]}",
+                            self._convert_defi_links(d["info"]),
+                        ),
+                        *e.definitions,
+                    ],
+                    backlinks=sorted(
+                        {
+                            *e.backlinks,
+                            *self._find_backlinks(d["name"], jdata),
+                        }
+                    ),
+                )
+            else:
+                self._entries[d["name"]] = dict_entry(
+                    definitions=[
+                        (
+                            f"{booktitle}, {d["chapter"]}",
+                            self._convert_defi_links(d["info"]),
+                        ),
+                    ],
+                    backlinks=self._find_backlinks(d["name"], jdata),
+                )
+
+    @staticmethod
+    def _get_alt_words(word):
         def _get_words():
             # word itself needs to be in synonyms, at least for sdcv
             yield word
@@ -54,122 +127,119 @@ def write_dict(input_file: str, output_basename: str, booknumber: str, booktitle
             # exactly match the full name
             yield w.lower()
 
-    # Find and capture markdown-style links to replace them
-    link_patterns = {
-        jd["name"]: re.compile(rf"\[([^]]*)\]\(#{jd['id']}\)") for jd in jdata
-    }
+    def write_dict(self, output_basename: str, dicttitle: str):
+        glos = Glossary()
 
-    def defi_convert_links(defi):
-        for name, r in link_patterns.items():
-            # At least sdcv / koreader need the link target verbatim (not html escaped or url escaped)
-            # https://github.com/ilius/pyglossary/issues/456
-            defi = r.sub(
-                rf"""<a class="dict-internal-link" href="bword://{name}">\1</a>""", defi
-            )
-        # markdown emphasis
-        defi = re.sub(r"_([^ ]+)_", r"""<em class="dict-emphasis">\1</em>""", defi)
-        return defi
-
-    def backlinks(name: str):
-        backlink_pattern = link_patterns[name]
-        links = [
-            f"""<a href="bword://{jd["name"]}">{jd["name"]}</a>"""
-            for jd in jdata
-            if backlink_pattern.search(jd["info"])
-        ]
-        if links:
-            return dedent(
-                f"""\
-                <dl class="dict-backlinks">
-                    <dt>Backlinks:</dt>
-                    {"\n".join(f"<dd>{l}</dd>" for l in links)}
-                </dl>
-                """,
-            )
-        else:
-            return ""
-
-    glos = Glossary()
-
-    for d in jdata:
-        glos.addEntry(
-            glos.newEntry(
-                [d["name"], *get_alt_words(d["name"])],
+        for en, e in self._entries.items():
+            defs = "\n".join(
                 dedent(
                     f"""\
-                    <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
-                    <div>
-                    <div class="dict-origin">{booktitle}, {d["chapter"]}</div>
-                    <div class="dict-definition">{defi_convert_links(d["info"])}</div>
+                    <div class="dict-origin">{chap}</div>
+                    <div class="dict-definition">{defi}</div>
                     <hr>
-                    <div class="dict-backlinks">{backlinks(d["name"])}</div>
-                    </div>
                     """,
-                ),
-                defiFormat="h",  # "m" for plain text, "h" for HTML
+                )
+                for (chap, defi) in e.definitions
             )
+            glos.addEntry(
+                glos.newEntry(
+                    [en, *self._get_alt_words(en)],
+                    dedent(
+                        f"""\
+                        <link rel="stylesheet" type="text/css" href="{output_basename}.css"/>
+                        <div>
+                        {defs}
+                        <div class="dict-backlinks">
+                        <dl class="dict-backlinks">
+                        <dt>Backlinks:</dt>
+                        {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in e.backlinks)}
+                        </dl>
+                        </div>
+                        </div>
+                        """,
+                    ),
+                    defiFormat="h",  # "m" for plain text, "h" for HTML
+                )
+            )
+
+        glos.setInfo("title", dicttitle)
+        glos.setInfo("author", "Karl Hammond, Jason Wright")
+        glos.write(
+            f"{output_basename}.ifo",
+            format="Stardict",
+            # koreader is fine with compressed .dict, but won't read compressed .syn
+            dictzip=False,
+        )
+        with open(f"{output_basename}.css", "w") as f:
+            f.write(
+                dedent(
+                    """\
+                    .dict-origin {
+                        font-size: smaller;
+                        font-style: italic;
+                        padding-bottom: 1em;
+                    }
+
+                    .dict-definition {}
+
+                    .dict-backlinks > dt {
+                        font-size: smaller;
+                        font-weight: bold;
+                    }
+
+                    .dict-backlinks > dd {
+                        font-size: smaller;
+                        font-style: italic;
+                    }
+
+                    .dict-internal-link {}
+
+                    .dict-emphasis {}
+                    """,
+                )
+            )
+
+
+def main():
+    books = {
+        "01": "The Eye of the World",
+        "02": "The Great Hunt",
+        "03": "The Dragon Reborn",
+        "04": "The Shadow Rising",
+        "05": "The Fires of Heaven",
+        "06": "Lord of Chaos",
+        "07": "A Crown of Swords",
+        "08": "The Path of Daggers",
+        "09": "Winter's Heart",
+        "10": "Crossroads of Twilight",
+        "00": "New Spring",
+        "11": "Knife of Dreams",
+        "12": "The Gathering Storm",
+        "13": "Towers of Midnight",
+        "14": "A Memory of Light",
+    }
+    wot_cumulative_dicts = wot_dict()
+
+    for num, name in books.items():
+        print(f"Converting {num} {name}")
+        wot_cumulative_dicts.ingest(
+            f"assets/data/book-{num}.json",
+            name,
+        )
+        wot_cumulative_dicts.write_dict(
+            f"wot-cumulative-book-{num}",
+            f"Wheel of Time Compendium {num}: {name}",
+        )
+        wot_single_dict = wot_dict()
+        wot_single_dict.ingest(
+            f"assets/data/book-{num}.json",
+            name,
+        )
+        wot_single_dict.write_dict(
+            f"wot-book-{num}",
+            f"Wheel of Time Compendium {num}: {name}",
         )
 
-    glos.setInfo("title", f"Wheel of Time Compendium {booknumber}: {booktitle}")
-    glos.setInfo("author", "Karl Hammond, Jason Wright")
-    glos.write(
-        f"{output_basename}.ifo",
-        format="Stardict",
-        # koreader is fine with compressed .dict, but won't read compressed .syn
-        dictzip=False,
-    )
-    with open(f"{output_basename}.css", "w") as f:
-        f.write(
-            dedent(
-                """\
-                .dict-origin {
-                    font-size: smaller;
-                    font-style: italic;
-                    padding-bottom: 1em;
-                }
 
-                .dict-definition {}
-
-                .dict-backlinks > dt {
-                    font-size: smaller;
-                    font-weight: bold;
-                }
-
-                .dict-backlinks > dd {
-                    font-size: smaller;
-                    font-style: italic;
-                }
-
-                .dict-internal-link {}
-
-                .dict-emphasis {}
-                """,
-            )
-        )
-
-
-books = {
-    "00": "New Spring",
-    "01": "The Eye of the World",
-    "02": "The Great Hunt",
-    "03": "The Dragon Reborn",
-    "04": "The Shadow Rising",
-    "05": "The Fires of Heaven",
-    "06": "Lord of Chaos",
-    "07": "A Crown of Swords",
-    "08": "The Path of Daggers",
-    "09": "Winter's Heart",
-    "10": "Crossroads of Twilight",
-    "11": "Knife of Dreams",
-    "12": "The Gathering Storm",
-    "13": "Towers of Midnight",
-    "14": "A Memory of Light",
-}
-for num, name in books.items():
-    print(f"Converting {num} {name}")
-    write_dict(
-        f"assets/data/book-{num}.json",
-        f"wot-book-{num}",
-        num,
-        name,
-    )
+if __name__ == "__main__":
+    main()
