@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from functools import reduce
 from pathlib import Path
 from textwrap import dedent
 from typing import Iterator, TypedDict
@@ -80,20 +81,28 @@ class WoTDict:
                 backlinks=self._find_backlinks(d["name"], jdata),
             )
             if d["name"] in self._entries:
-                ets = self._entries[d["name"]]
+                _ets = sorted(
+                    (new_entry, *self._entries[d["name"]]),
+                    key=lambda e: e.book_number,
+                    reverse=True,
+                )
                 self._entries[d["name"]] = [
-                    new_entry,
-                    *(
-                        # Only keep links from the most recent book to avoid clutter
-                        DictEntry(
-                            book_number=e.book_number,
-                            book_title=e.book_title,
-                            chapter=e.chapter,
-                            definition=e.definition,
-                            backlinks=e.backlinks - new_entry.backlinks,
-                        )
-                        for e in ets
-                    ),
+                    DictEntry(
+                        book_number=e.book_number,
+                        book_title=e.book_title,
+                        chapter=e.chapter,
+                        definition=e.definition,
+                        backlinks=reduce(
+                            lambda x, y: x - y,
+                            (
+                                ee.backlinks
+                                for ee in _ets
+                                if ee.book_number > e.book_number
+                            ),
+                            e.backlinks,
+                        ),
+                    )
+                    for e in _ets
                 ]
             else:
                 self._entries[d["name"]] = [new_entry]
@@ -160,7 +169,7 @@ class WoTDict:
                         <hr>
                         <dl class="dict-backlinks">
                         <dt>Backlinks{f''' ({e.book_title})''' if len(ets) > 1 else ''}:</dt>
-                        {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(e.backlinks))}
+                        {"\n".join(f'''<dd><a href="bword://{link}">{link}</a></dd>''' for link in sorted(e.backlinks))}
                         </dl>
                         """,
                     )
@@ -227,6 +236,18 @@ class WoTDict:
             )
 
 
+def build_dict(dict_obj: WoTDict, prefix: str, num: str, name: str):
+    dict_obj.ingest(
+        f"assets/data/book-{num}.json",
+        int(num),
+        name,
+    )
+    dict_obj.write_dict(
+        f"dicts/{prefix}-{num}",
+        f"WoT Compendium {num} (cumulative): {name}",
+    )
+
+
 def main() -> None:
     books = {
         "01": "The Eye of the World",
@@ -251,25 +272,8 @@ def main() -> None:
 
     for num, name in books.items():
         print(f"Converting {num} {name}")
-        wot_cumulative_dicts.ingest(
-            f"assets/data/book-{num}.json",
-            int(num.lstrip("0")),
-            name,
-        )
-        wot_cumulative_dicts.write_dict(
-            f"dicts/wot-cumulative-book-{num}",
-            f"WoT Compendium {num} (cumulative): {name}",
-        )
-        wot_single_dict = WoTDict()
-        wot_single_dict.ingest(
-            f"assets/data/book-{num}.json",
-            int(num.lstrip("0")),
-            name,
-        )
-        wot_single_dict.write_dict(
-            f"dicts/wot-book-{num}",
-            f"WoT Compendium {num}: {name}",
-        )
+        build_dict(wot_cumulative_dicts, "wot-cumulative-book", num, name)
+        build_dict(WoTDict(), "wot-book", num, name)
 
 
 if __name__ == "__main__":
