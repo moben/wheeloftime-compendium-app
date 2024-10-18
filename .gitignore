@@ -49,8 +49,4 @@ app.*.map.json
 /.secret
 
 # dictionaries
-wot-book-*.dict
-wot-book-*.idx
-wot-book-*.ifo
-wot-book-*.syn
-wot-book-*.css
+/dicts/
