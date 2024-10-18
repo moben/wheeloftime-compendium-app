@@ -270,6 +270,7 @@ class DictVariant:
 
     def build_dict(self, num: str, name: str) -> None:
         print(f"## Converting {num} {name}")
+
         Path(f"dicts/{self.prefix}").mkdir(parents=True, exist_ok=True)
 
         dict_obj = WoTDict() if self.wot_dict is None else self.wot_dict
@@ -333,7 +334,8 @@ def main() -> None:
 
     for var in variants:
         print(f"# Building {var.title}")
-        if var.after == None:
+
+        if var.after is None:
             var.build_dict(*new_spring)
         for num, name in books.items():
             var.build_dict(num, name)
