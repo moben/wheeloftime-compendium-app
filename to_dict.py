@@ -268,7 +268,7 @@ def main() -> None:
     new_spring = ("00", "New Spring")
     cumulative_variants = {
         "ns_chronological": {
-            "after": "00",
+            "after": None,
             "dict": WoTDict(),
             "prefix": "wot-cumulative-ns_chronological-book",
         },
@@ -286,29 +286,20 @@ def main() -> None:
 
     Path("dicts").mkdir(exist_ok=True)
 
+    def cond_build_new_spring(current_num: None | str):
+        for var in cumulative_variants.values():
+            if var["after"] == current_num:
+                build_dict(var["dict"], var["prefix"], *new_spring)
+
     print(f"Converting {' '.join(new_spring)}")
     build_dict(WoTDict(), "wot-book", *new_spring)
-    build_dict(
-        cumulative_variants["ns_chronological"]["dict"],
-        cumulative_variants["ns_chronological"]["prefix"],
-        *new_spring,
-    )
+    cond_build_new_spring(None)
     for num, name in books.items():
         print(f"Converting {num} {name}")
         build_dict(WoTDict(), "wot-book", num, name)
-        for order in cumulative_variants:
-            build_dict(
-                cumulative_variants[order]["dict"],
-                cumulative_variants[order]["prefix"],
-                num,
-                name,
-            )
-            if cumulative_variants[order]["after"] == num:
-                build_dict(
-                    cumulative_variants[order]["dict"],
-                    cumulative_variants[order]["prefix"],
-                    *new_spring,
-                )
+        cond_build_new_spring(num)
+        for var in cumulative_variants.values():
+            build_dict(var["dict"], var["prefix"], num, name)
 
 
 if __name__ == "__main__":
