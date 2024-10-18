@@ -24,7 +24,7 @@ class BookData(TypedDict):
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class DictEntry:
-    book: str
+    book_title: str
     chapter: str
     definition: str
     backlinks: set[str]
@@ -72,7 +72,7 @@ class WoTDict:
 
         for d in jdata:
             new_entry = DictEntry(
-                book=booktitle,
+                book_title=booktitle,
                 chapter=d["chapter"],
                 definition=self._convert_defi_links(d["info"]),
                 backlinks=self._find_backlinks(d["name"], jdata),
@@ -84,7 +84,7 @@ class WoTDict:
                     *(
                         # Only keep links from the most recent book to avoid clutter
                         DictEntry(
-                            book=e.book,
+                            book_title=e.book_title,
                             chapter=e.chapter,
                             definition=e.definition,
                             backlinks=e.backlinks - new_entry.backlinks,
@@ -143,7 +143,7 @@ class WoTDict:
             defs = "\n<hr>\n".join(
                 dedent(
                     f"""\
-                    <div class="dict-origin">{e.book}, {e.chapter}</div>
+                    <div class="dict-origin">{e.book_title}, {e.chapter}</div>
                     <div class="dict-definition">{e.definition}</div>
                     """,
                 )
@@ -156,7 +156,7 @@ class WoTDict:
                         f"""\
                         <hr>
                         <dl class="dict-backlinks">
-                        <dt>Backlinks{f''' ({e.book})''' if len(ets) > 1 else ''}:</dt>
+                        <dt>Backlinks{f''' ({e.book_title})''' if len(ets) > 1 else ''}:</dt>
                         {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(e.backlinks))}
                         </dl>
                         """,
