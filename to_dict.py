@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import gzip
 import json
 import re
 from dataclasses import dataclass
@@ -201,9 +202,13 @@ class WoTDict:
         glos.write(
             f"{output_basename}.ifo",
             format="Stardict",
-            # koreader is fine with compressed .dict, but won't read compressed .syn
-            dictzip=False,
         )
+
+        # koreader is fine with compressed .dict, but won't read compressed .syn
+        with gzip.open(f"{output_basename}.syn.dz", mode="rb") as syndz:
+            Path(f"{output_basename}.syn").write_bytes(syndz.read())
+        Path(f"{output_basename}.syn.dz").unlink()
+
         with Path(f"{output_basename}.css").open("w") as f:
             f.write(
                 dedent(
