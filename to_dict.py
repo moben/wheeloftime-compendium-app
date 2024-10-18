@@ -266,7 +266,7 @@ class DictVariant:
     after: None | str
     wot_dict: None | WoTDict = field(default_factory=WoTDict)
     prefix: str
-    title_fmt: str
+    title: str
 
     def build_dict(self, num: str, name: str) -> None:
         Path(f"dicts/{self.prefix}").mkdir(parents=True, exist_ok=True)
@@ -279,7 +279,7 @@ class DictVariant:
         )
         dict_obj.write_dict(
             f"dicts/{self.prefix}/{self.prefix}-book-{num}",
-            self.title_fmt.format(num=num, name=name),
+            f"{self.title} {num}: {name}",
         )
 
 
@@ -308,25 +308,25 @@ def main() -> None:
             after=None,
             wot_dict=None,
             prefix="wot",
-            title_fmt="WoT Compendium {num}: {name}",
+            title="WoT Compendium",
         ),
         # New Spring in (in-universe) chronilogical order
         DictVariant(
             after=None,
             prefix="wot-cumulative-ns_chronological",
-            title_fmt="WoT Compendium (cumulative, NS chronological) {num}: {name}",
+            title="WoT Compendium (cumulative, NS chronological)",
         ),
         # New Spring in publishing order
         DictVariant(
             after="10",
             prefix="wot-cumulative-ns_publishing",
-            title_fmt="WoT Compendium (cumulative, NS publishing) {num}: {name}",
+            title="WoT Compendium (cumulative, NS publishing)",
         ),
         # New Spring last
         DictVariant(
             after="14",
             prefix="wot-cumulative-ns_last",
-            title_fmt="WoT Compendium (cumulative, NS last) {num}: {name}",
+            title="WoT Compendium (cumulative, NS last)",
         ),
     }
 
