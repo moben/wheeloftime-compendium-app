@@ -1,0 +1,12 @@
+[project]
+name = "wheeloftime-compendium-app"
+version = "0.1.0"
+description = "generate dictionaries using pyglossary"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "lxml>=5.3.0",
+    "pyglossary",
+    "python-idzip>=0.3.9",
+    "ruff>=0.6.9",
+]

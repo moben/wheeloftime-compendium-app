@@ -48,3 +48,9 @@ app.*.map.json
 
 /.secret
 android.keystore
+
+# dictionaries
+*.dict
+*.idx
+*.ifo
+*.syn
