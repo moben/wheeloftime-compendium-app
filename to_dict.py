@@ -11,14 +11,16 @@ from pyglossary.glossary_v2 import Glossary
 Glossary.init()
 
 
-@dataclass
+@dataclass(frozen=True, kw_only=True, slots=True)
 class dict_entry:
-    definitions: list[tuple[str, str]]
-    backlinks: list[tuple[str, set[str]]]
+    book: str
+    chapter: str
+    definition: str
+    backlinks: set[str]
 
 
 class wot_dict:
-    _entries: dict[str, dict_entry]
+    _entries: dict[str, list[dict_entry]]
     _link_patterns: dict[re.Pattern, str]
 
     def __init__(self) -> None:
@@ -32,7 +34,7 @@ class wot_dict:
         # In any case, what we really need is to find the name for a given id link.
         return {re.compile(rf"\[([^]]*)\]\(#{jd['id']}\)"): jd["name"] for jd in jdata}
 
-    def _find_backlinks(self, name: str, jdata) -> list[str]:
+    def _find_backlinks(self, name: str, jdata) -> set[str]:
         backlink_patterns = [r for r, n in self._link_patterns.items() if n == name]
         return {
             jd["name"]
@@ -58,40 +60,29 @@ class wot_dict:
         self._link_patterns |= self._compile_link_patterns(jdata)
 
         for d in jdata:
-            backlinks = self._find_backlinks(d["name"], jdata)
+            new_entry = dict_entry(
+                book=booktitle,
+                chapter=d["chapter"],
+                definition=self._convert_defi_links(d["info"]),
+                backlinks=self._find_backlinks(d["name"], jdata),
+            )
             if d["name"] in self._entries:
-                e = self._entries[d["name"]]
-                self._entries[d["name"]] = dict_entry(
-                    definitions=[
-                        (
-                            f"{booktitle}, {d["chapter"]}",
-                            self._convert_defi_links(d["info"]),
-                        ),
-                        *e.definitions,
-                    ],
-                    backlinks=[
-                        (
-                            booktitle,
-                            backlinks,
-                        ),
-                        *((book, links - backlinks) for (book, links) in e.backlinks),
-                    ],
-                )
+                ets = self._entries[d["name"]]
+                self._entries[d["name"]] = [
+                    new_entry,
+                    *(
+                        # Only keep links from the most recent book to avoid clutter
+                        dict_entry(
+                            book=e.book,
+                            chapter=e.chapter,
+                            definition=e.definition,
+                            backlinks=e.backlinks - new_entry.backlinks,
+                        )
+                        for e in ets
+                    ),
+                ]
             else:
-                self._entries[d["name"]] = dict_entry(
-                    definitions=[
-                        (
-                            f"{booktitle}, {d["chapter"]}",
-                            self._convert_defi_links(d["info"]),
-                        ),
-                    ],
-                    backlinks=[
-                        (
-                            booktitle,
-                            backlinks,
-                        ),
-                    ],
-                )
+                self._entries[d["name"]] = [new_entry]
 
     @staticmethod
     def _get_alt_words(word):
@@ -137,27 +128,27 @@ class wot_dict:
     def write_dict(self, output_basename: str, dicttitle: str):
         glos = Glossary()
 
-        for en, e in self._entries.items():
+        for en, ets in self._entries.items():
             defs = "\n".join(
                 dedent(
                     f"""\
-                    <div class="dict-origin">{chap}</div>
-                    <div class="dict-definition">{defi}</div>
+                    <div class="dict-origin">{e.book}, {e.chapter}</div>
+                    <div class="dict-definition">{e.definition}</div>
                     <hr>
                     """,
                 )
-                for (chap, defi) in e.definitions
+                for e in ets
             )
             backlinks = "\n".join(
                 dedent(
                     f"""\
                     <dl class="dict-backlinks">
-                    <dt>Backlinks{f''' ({book})''' if len(e.backlinks) > 1 else ''}:</dt>
-                    {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(links))}
+                    <dt>Backlinks{f''' ({e.book})''' if len(ets) > 1 else ''}:</dt>
+                    {"\n".join(f'''<dd><a href="bword://{l}">{l}</a></dd>''' for l in sorted(e.backlinks))}
                     </dl>
                     """,
                 )
-                for book, links in e.backlinks
+                for e in ets
             )
             glos.addEntry(
                 glos.newEntry(
