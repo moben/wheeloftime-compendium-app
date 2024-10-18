@@ -21,6 +21,15 @@ jobs:
       - name: Install the project
         run: uv sync --all-extras --dev
 
+      - name: ruff format
+        run: uv run ruff format --check to_dict.py
+
+      - name: ruff check
+        run: uv run ruff check to_dict.py
+
+      - name: mypy
+        run: uv run mypy --pretty to_dict.py
+
       - name: Build dictionaries
         # For example, using `pytest`
         run: uv run python3 to_dict.py
