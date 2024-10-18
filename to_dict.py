@@ -242,6 +242,8 @@ class WoTDict:
 
 
 def build_dict(var, num: str, name: str):
+    Path(f"dicts/{var['prefix']}").mkdir(parents=True, exist_ok=True)
+
     dict_obj = var.get("dict", WoTDict())
     dict_obj.ingest(
         f"assets/data/book-{num}.json",
@@ -249,7 +251,7 @@ def build_dict(var, num: str, name: str):
         name,
     )
     dict_obj.write_dict(
-        f"dicts/{var['prefix']}-{num}",
+        f"dicts/{var['prefix']}/{var['prefix']}-book-{num}",
         var["title_fmt"].format(num=num, name=name),
     )
 
@@ -275,30 +277,28 @@ def main() -> None:
     variants = {
         "independent": {
             "after": None,
-            "prefix": "wot-book",
+            "prefix": "wot",
             "title_fmt": "WoT Compendium {num}: {name}",
         },
         "ns_chronological": {
             "after": None,
             "dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_chronological-book",
+            "prefix": "wot-cumulative-ns_chronological",
             "title_fmt": "WoT Compendium (cumulative, NS chronological) {num}: {name}",
         },
         "ns_publishing": {
             "after": "10",
             "dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_publishing-book",
+            "prefix": "wot-cumulative-ns_publishing",
             "title_fmt": "WoT Compendium (cumulative, NS publishing) {num}: {name}",
         },
         "ns_last": {
             "after": "14",
             "dict": WoTDict(),
-            "prefix": "wot-cumulative-ns_last-book",
+            "prefix": "wot-cumulative-ns_last",
             "title_fmt": "WoT Compendium (cumulative, NS last) {num}: {name}",
         },
     }
-
-    Path("dicts").mkdir(exist_ok=True)
 
     def cond_build_new_spring(current_num: None | str):
         for var in variants.values():
