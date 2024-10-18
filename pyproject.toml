@@ -9,4 +9,17 @@ dependencies = [
     "pyglossary",
     "python-idzip>=0.3.9",
     "ruff>=0.6.9",
+    "mypy>=1.10",
 ]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "RUF", "UP", "B", "PL", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "pyglossary.*"
+ignore_missing_imports = true

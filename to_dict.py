@@ -4,11 +4,12 @@ from __future__ import annotations
 import gzip
 import json
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import reduce
 from pathlib import Path
 from textwrap import dedent
-from typing import Final, Iterator, TypedDict
+from typing import Final, TypedDict
 
 from pyglossary.glossary_v2 import Glossary
 
