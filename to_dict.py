@@ -317,7 +317,7 @@ class DictVariant:
                 self._build_dict(*new_spring)
 
 
-def init_worker():
+def init_worker() -> None:
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
