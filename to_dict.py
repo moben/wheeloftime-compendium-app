@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor
 import gzip
 import json
 import re
@@ -289,7 +288,7 @@ class DictVariant:
             f"{self.title} {num}: {name}",
         )
 
-    def build_all(self):
+    def build_all(self) -> None:
         books: Final = {
             "01": "The Eye of the World",
             "02": "The Great Hunt",
@@ -345,13 +344,9 @@ def main() -> None:
         ),
     ]
 
+    for var in variants:
+        var.build_all()
 
-    with ProcessPoolExecutor() as pe:
-        try:
-            for _ in pe.map(DictVariant.build_all, variants):
-                pass
-        except KeyboardInterrupt:
-            pe.shutdown(wait=True)
 
 if __name__ == "__main__":
     main()
