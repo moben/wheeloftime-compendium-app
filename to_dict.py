@@ -4,9 +4,11 @@ from __future__ import annotations
 import gzip
 import json
 import re
+import signal
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import reduce
+from multiprocessing import Pool
 from pathlib import Path
 from textwrap import dedent
 from typing import Final, TypedDict
@@ -315,6 +317,10 @@ class DictVariant:
                 self._build_dict(*new_spring)
 
 
+def init_worker():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
 def main() -> None:
     variants: Final[list[DictVariant]] = [
         # independent, non-cumulative dictionaries
@@ -344,8 +350,12 @@ def main() -> None:
         ),
     ]
 
-    for var in variants:
-        var.build_all()
+    with Pool(initializer=init_worker) as pool:
+        try:
+            pool.map(DictVariant.build_all, variants, 1)
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.join()
 
 
 if __name__ == "__main__":
