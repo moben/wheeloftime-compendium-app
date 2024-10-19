@@ -352,7 +352,7 @@ def main() -> None:
 
     with Pool(initializer=init_worker) as pool:
         try:
-            pool.map(DictVariant.build_all, variants, 1)
+            pool.map(DictVariant.build_all, variants, chunksize=1)
         except KeyboardInterrupt:
             pool.terminate()
             pool.join()
