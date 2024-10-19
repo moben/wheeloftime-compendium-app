@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 import gzip
 import json
 import re
@@ -272,8 +273,8 @@ class DictVariant:
     prefix: str
     title: str
 
-    def build_dict(self, num: str, name: str) -> None:
-        print(f"## Converting {num} {name}")
+    def _build_dict(self, num: str, name: str) -> None:
+        print(f"# Building {self.title} {num}: {name}")
 
         Path(f"dicts/{self.prefix}").mkdir(parents=True, exist_ok=True)
 
@@ -288,26 +289,34 @@ class DictVariant:
             f"{self.title} {num}: {name}",
         )
 
+    def build_all(self):
+        books: Final = {
+            "01": "The Eye of the World",
+            "02": "The Great Hunt",
+            "03": "The Dragon Reborn",
+            "04": "The Shadow Rising",
+            "05": "The Fires of Heaven",
+            "06": "Lord of Chaos",
+            "07": "A Crown of Swords",
+            "08": "The Path of Daggers",
+            "09": "Winter's Heart",
+            "10": "Crossroads of Twilight",
+            "11": "Knife of Dreams",
+            "12": "The Gathering Storm",
+            "13": "Towers of Midnight",
+            "14": "A Memory of Light",
+        }
+        new_spring: Final = ("00", "New Spring")
+
+        if self.after is None:
+            self._build_dict(*new_spring)
+        for num, name in books.items():
+            self._build_dict(num, name)
+            if self.after == num:
+                self._build_dict(*new_spring)
+
 
 def main() -> None:
-    books: Final = {
-        "01": "The Eye of the World",
-        "02": "The Great Hunt",
-        "03": "The Dragon Reborn",
-        "04": "The Shadow Rising",
-        "05": "The Fires of Heaven",
-        "06": "Lord of Chaos",
-        "07": "A Crown of Swords",
-        "08": "The Path of Daggers",
-        "09": "Winter's Heart",
-        "10": "Crossroads of Twilight",
-        "11": "Knife of Dreams",
-        "12": "The Gathering Storm",
-        "13": "Towers of Midnight",
-        "14": "A Memory of Light",
-    }
-    new_spring: Final = ("00", "New Spring")
-
     variants: Final[list[DictVariant]] = [
         # independent, non-cumulative dictionaries
         DictVariant(
@@ -336,16 +345,13 @@ def main() -> None:
         ),
     ]
 
-    for var in variants:
-        print(f"# Building {var.title}")
 
-        if var.after is None:
-            var.build_dict(*new_spring)
-        for num, name in books.items():
-            var.build_dict(num, name)
-            if var.after == num:
-                var.build_dict(*new_spring)
-
+    with ProcessPoolExecutor() as pe:
+        try:
+            for _ in pe.map(DictVariant.build_all, variants):
+                pass
+        except KeyboardInterrupt:
+            pe.shutdown(wait=True)
 
 if __name__ == "__main__":
     main()
